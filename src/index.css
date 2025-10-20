@@ -1,0 +1,8 @@
+body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; padding: 2rem; background: #f7f7fb; color: #111 }
+.container { max-width: 900px; margin: 0 auto; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 6px 18px rgba(12,14,20,0.06) }
+.grid { display: flex; gap: 1rem }
+.grid textarea { width: 100%; font-family: monospace; }
+.row { margin-top: 1rem; display:flex; gap: 1rem; align-items:center }
+button { padding: 0.5rem 1rem; border-radius:6px; border:none; background:#2563eb; color:white }
+.error { margin-top:1rem; color:#b91c1c }
+.result { margin-top:1rem }
