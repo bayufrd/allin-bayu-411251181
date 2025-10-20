@@ -15,8 +15,12 @@ body {
 }
 
 .tabs { display:flex; gap:0.5rem; margin-bottom:0.75rem }
-.tabs button { padding:0.4rem 0.6rem; border-radius:6px; border:1px solid #e5e7eb; background:transparent }
+.tabs button { padding:0.45rem 0.75rem; border-radius:6px; border:1px solid #e5e7eb; background:transparent; cursor: pointer }
 .tabs button.active { background:#0ea5a4; color:white; border-color:#0ea5a4 }
+
+.btn { padding: 0.5rem 1rem; border-radius: 999px; border: none; cursor: pointer }
+.btn.primary { background: #0ea5a4; color: white; box-shadow: 0 6px 18px rgba(14,165,164,0.12); border-color: #0ea5a4 }
+.btn.primary:hover { filter: brightness(0.95); transform: translateY(-1px) }
 
 .grid {
 	display: grid;
@@ -54,6 +58,8 @@ body {
 .result { margin-top: 1rem }
 
 footer { margin-top: 1.5rem; color: #6b7280 }
+
+.header-right { text-align: right; margin-bottom: 0.5rem }
 
 @media (max-width: 680px) {
 	.grid { grid-template-columns: 1fr }

@@ -10,7 +10,7 @@ function parseMatrix(text) {
 }
 
 export default function App() {
-    const [mode, setMode] = useState('text') // 'text' or 'cell'
+    const [mode, setMode] = useState('cell') // 'text' or 'cell'
     const [matrixText, setMatrixText] = useState('2 1 -1\n-3 -1 2\n-2 1 2')
     const [vectorText, setVectorText] = useState('8\n-11\n-3')
     const [matrixCells, setMatrixCells] = useState([[2, 1, -1], [-3, -1, 2], [-2, 1, 2]])
@@ -18,7 +18,7 @@ export default function App() {
     const [method, setMethod] = useState('gauss')
     const [result, setResult] = useState(null)
     const [error, setError] = useState(null)
-    const [showSteps, setShowSteps] = useState(false)
+    const [showSteps, setShowSteps] = useState(true)
     const [steps, setSteps] = useState(null)
 
     function solve() {
@@ -99,7 +99,7 @@ export default function App() {
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <input type="checkbox" checked={showSteps} onChange={e => setShowSteps(e.target.checked)} /> Tampilkan langkah
                 </label>
-                <button onClick={solve}>Selesaikan</button>
+                <button className="btn primary" onClick={solve}>Selesaikan</button>
             </div>
 
             {error && <div className="error">Error: {error}</div>}
