@@ -47,12 +47,30 @@ body {
 .matrix-controls { display:flex; gap:0.5rem }
 .matrix-controls button { padding:0.35rem 0.5rem; border-radius:6px }
 
+.matrix-input-error { color: #b91c1c; margin-top: 6px; font-size: 0.95em }
+
+/* variable label after vector cell in matrix input */
+.vector-row .var-label { margin-left: 8px; font-weight: 600; color: #111827 }
+.vector-row .var-label sub { font-size: 0.85em; vertical-align: sub }
+
+/* label next to each matrix cell (muted and small) */
+.cell-with-label { display: inline-flex; align-items: center; gap: 6px }
+.cell-with-label .col-label { color: #6b7280; font-size: 0.85em; font-weight: 600 }
+.cell-with-label .col-label sub { font-size: 0.8em; vertical-align: sub }
+
 .matrix-grid { display:flex; gap:0.5rem; align-items:flex-start }
 .matrix-wrap { display:flex; flex-direction:column; gap:0.25rem; background:#fff; padding:6px }
 .matrix-row { display:flex; gap:0.25rem }
 .cell { width:64px; padding:0.4rem; border:1px solid #e5e7eb; border-radius:6px; text-align:center }
 .vector-wrap { display:flex; flex-direction:column; gap:0.25rem }
 .vector-cell { width:80px }
+
+/* plus sign between cells in matrix input */
+.matrix-row .plus { display:inline-flex; align-items:center; padding: 0 6px; color: #6b7280; font-weight: 500; opacity: 0.9 }
+
+/* vector input rows show an equals sign before each cell */
+.vector-row { display:flex; align-items:center; gap:8px }
+.vector-row .equals { color: #6b7280; font-weight: 500; padding-left: 6px; opacity: 0.95 }
 
 /* Matrix table for step rendering */
 .matrix-table { border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; }

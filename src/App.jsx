@@ -26,7 +26,20 @@ export default function App() {
         try {
             const A = mode === 'text' ? parseMatrix(matrixText) : matrixCells
             const b = mode === 'text' ? vectorText.trim().split(/\s+/).map(Number) : vectorCells
-            if (A.length !== b.length) throw new Error('Matrix and vector size mismatch')
+            // Validate sizes: solver expects a square matrix (n x n) and vector length n
+            if (!A || !A.length || !A[0] || typeof A[0].length !== 'number') throw new Error('Matriks A tidak valid')
+            const n = A.length
+            const m = A[0].length
+            if (n !== m) throw new Error('Matriks harus berbentuk bujur sangkar (n x n). Pastikan jumlah baris dan kolom sama.')
+            if (!b || b.length !== n) throw new Error('Vektor b harus mempunyai panjang yang sama dengan jumlah baris matriks A')
+
+            // validate numeric entries
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < m; j++) {
+                    if (!Number.isFinite(Number(A[i][j]))) throw new Error(`Nilai tidak valid di A[${i+1},${j+1}]: '${A[i][j]}'`)
+                }
+                if (!Number.isFinite(Number(b[i]))) throw new Error(`Nilai tidak valid di b[${i+1}]: '${b[i]}'`)
+            }
             let sol = null
             let outSteps = null
             if (showSteps) {
@@ -312,7 +325,7 @@ export default function App() {
                                 )}
                                 {s.solution && (
                                     <div className="solution-details">
-                                        <div style={{ fontWeight: 600 }}>Solusi akhir <span>x<sub>i</sub></span>{' = '}<span>D<sub>i</sub></span>{' / D'}</div>
+                                        3 
                                         <ol>
                                             {s.solution.map((v, idx) => {
                                                 // find the corresponding D_i step (search earlier steps)

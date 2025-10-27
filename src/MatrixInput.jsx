@@ -7,20 +7,34 @@ function range(n) {
 export default function MatrixInput({ matrix, vector, onChangeMatrix, onChangeVector }) {
   const n = matrix.length
 
+  // normalize a string value to a Number: accept comma as decimal separator
+  function parseNumberInput(value) {
+    if (value === null || value === undefined) return NaN
+    if (typeof value === 'number') return value
+    const s = String(value).trim().replace(/,/g, '.')
+    if (s === '') return NaN
+    const v = Number(s)
+    return Number.isFinite(v) ? v : NaN
+  }
+
   function updateCell(r, c, value) {
+    const v = parseNumberInput(value)
     const copy = matrix.map(row => row.slice())
-    copy[r][c] = Number(value)
+    copy[r][c] = Number.isNaN(v) ? value : v
     onChangeMatrix(copy)
   }
 
   function updateVector(i, value) {
+    const v = parseNumberInput(value)
     const copy = vector.slice()
-    copy[i] = Number(value)
+    copy[i] = Number.isNaN(v) ? value : v
     onChangeVector(copy)
   }
 
   function addRow() {
-    const newRow = Array(matrix[0].length).fill(0)
+    // add a new row (do not auto-balance columns)
+    const cols = matrix[0].length
+    const newRow = Array(cols).fill(0)
     onChangeMatrix([...matrix, newRow])
     onChangeVector([...vector, 0])
   }
@@ -32,6 +46,7 @@ export default function MatrixInput({ matrix, vector, onChangeMatrix, onChangeVe
   }
 
   function addColumn() {
+    // add a new column (do not auto-add rows)
     const copy = matrix.map(row => [...row, 0])
     onChangeMatrix(copy)
   }
@@ -42,6 +57,29 @@ export default function MatrixInput({ matrix, vector, onChangeMatrix, onChangeVe
     onChangeMatrix(copy)
   }
 
+  // validation: return an error string if invalid, otherwise null
+  function getValidationError() {
+    if (!matrix || !matrix.length) return 'Matriks A kosong'
+    const rows = matrix.length
+    const cols = matrix[0].length
+    // ensure rectangular
+    for (let i = 0; i < rows; i++) {
+      if (!Array.isArray(matrix[i]) || matrix[i].length !== cols) return 'Setiap baris harus memiliki jumlah kolom yang sama'
+    }
+    if (rows !== cols) return 'Matriks harus berbentuk bujur sangkar (n × n) untuk solusi unik'
+    if (!vector || vector.length !== rows) return 'Vektor b harus memiliki panjang sama dengan jumlah baris A'
+    // check numeric values
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols; j++) {
+        const v = parseNumberInput(matrix[i][j])
+        if (Number.isNaN(v)) return `Nilai tidak valid di A[${i+1},${j+1}]: '${matrix[i][j]}'`
+      }
+      const vb = parseNumberInput(vector[i])
+      if (Number.isNaN(vb)) return `Nilai tidak valid di b[${i+1}]: '${vector[i]}'`
+    }
+    return null
+  }
+
   return (
     <div className="matrix-area">
       <div className="matrix-controls">
@@ -50,23 +88,33 @@ export default function MatrixInput({ matrix, vector, onChangeMatrix, onChangeVe
         <button onClick={addColumn}>Tambah kolom</button>
         <button onClick={removeColumn}>Hapus kolom</button>
       </div>
+      {/* inline validation message for cell input */}
+      {(() => {
+        const err = getValidationError()
+        return err ? <div className="matrix-input-error">{err}</div> : null
+      })()}
 
       <div className="matrix-grid">
         <div className="matrix-wrap">
           {range(n).map(r => (
             <div key={r} className="matrix-row">
               {range(matrix[0].length).map(c => (
-                <input
-                  key={c}
-                  className="cell"
-                  value={matrix[r][c]}
-                  onChange={e => updateCell(r, c, e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Tab') {
-                      // native tab is fine; we'll keep default behavior
-                    }
-                  }}
-                />
+                <React.Fragment key={c}>
+                  <div className="cell-with-label">
+                    <input
+                      className="cell"
+                      value={matrix[r][c]}
+                      onChange={e => updateCell(r, c, e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Tab') {
+                          // native tab is fine; we'll keep default behavior
+                        }
+                      }}
+                    />
+                    <span className="col-label">x<sub>{c + 1}</sub></span>
+                  </div>
+                  {c < matrix[0].length - 1 && <span className="plus">+</span>}
+                </React.Fragment>
               ))}
             </div>
           ))}
@@ -74,7 +122,10 @@ export default function MatrixInput({ matrix, vector, onChangeMatrix, onChangeVe
 
         <div className="vector-wrap">
           {range(n).map(i => (
-            <input key={i} className="cell vector-cell" value={vector[i]} onChange={e => updateVector(i, e.target.value)} />
+            <div key={i} className="vector-row">
+              <span className="equals">=</span>
+              <input className="cell vector-cell" value={vector[i]} onChange={e => updateVector(i, e.target.value)} />
+            </div>
           ))}
         </div>
       </div>
