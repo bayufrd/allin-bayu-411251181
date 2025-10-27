@@ -54,10 +54,73 @@ body {
 .vector-wrap { display:flex; flex-direction:column; gap:0.25rem }
 .vector-cell { width:80px }
 
+/* Matrix table for step rendering */
+.matrix-table { border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; }
+.matrix-table td { padding: 4px 8px; vertical-align: middle; white-space: nowrap; }
+.matrix-table .matrix-number { text-align: right; min-width: 64px; }
+
+/* make the details/summary show pointer to hint interactivity */
+.det-steps details summary { cursor: pointer; }
+.matrix-table .matrix-bracket { width: 1.2em; text-align: center; color: #111827; }
+.steps .matrix-table { display: inline-table; margin-top: 6px }
+
+/* stacked fraction style */
+.fraction { display: inline-block; text-align: center; line-height: 1; vertical-align: middle; }
+.fraction .num { display: block; padding: 0 4px; white-space: nowrap; }
+.fraction .den { display: block; padding: 0 4px; border-top: 1px solid currentColor; margin-top: 3px; white-space: nowrap; }
+
+/* Continuous tall brackets around matrix table */
+.matrix-with-brackets { position: relative; display: inline-block; padding: 6px 14px; }
+.matrix-with-brackets::before,
+.matrix-with-brackets::after {
+	content: '';
+	position: absolute;
+	top: 6px;
+	bottom: 6px;
+	width: 0;
+	pointer-events: none;
+}
+.matrix-with-brackets::before {
+	left: 6px;
+	border-left: 2px solid #111827;
+	border-top-left-radius: 6px;
+	border-bottom-left-radius: 6px;
+}
+.matrix-with-brackets::after {
+	right: 6px;
+	border-right: 2px solid #111827;
+	border-top-right-radius: 6px;
+	border-bottom-right-radius: 6px;
+}
+
+/* ensure table inside has spacing so bracket doesn't overlap content */
+.matrix-with-brackets .matrix-table { margin: 0 10px; }
+
+.det-matrix-label { font-weight: 600; min-width: 36px; text-align: left; }
+.det-matrix-label sub { font-size: 0.85em; vertical-align: sub; }
+.steps sub, .det-steps sub { font-size: 0.85em; vertical-align: sub; }
+
+/* make subscripts in result area smaller */
+.result sub, .var-label sub { font-size: 0.85em; vertical-align: sub; }
+.var-label { font-weight: 600; margin-right: 6px }
+
 .error { color: #b91c1c; margin-top: 1rem }
 .result { margin-top: 1rem }
 
 footer { margin-top: 1.5rem; color: #6b7280 }
+
+.example-text { color: #6b7280; display: block; margin-top: 4px; }
+
+/* compact example matrix styling */
+.example-matrix { font-size: 0.92em; }
+.example-text .det-matrix-label { color: #6b7280 }
+
+.example-b-table { font-size: 0.92em; }
+.example-b-table td { padding: 4px 12px; text-align: center }
+.example-text .det-matrix-label { font-weight: 600; color: #6b7280 }
+
+/* separator for augmented column in step/result matrices */
+.matrix-table td.augmented-col { border-left: 2px solid #111827; padding-left: 12px }
 
 .header-right { text-align: right; margin-bottom: 0.5rem }
 

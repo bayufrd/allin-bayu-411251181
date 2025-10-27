@@ -63,6 +63,50 @@ function det(matrix) {
   return D
 }
 
+// Compute determinant using Gaussian elimination (partial pivoting) and record steps.
+export function detWithSteps(input) {
+  const n = input.length
+  const M = input.map(r => r.slice())
+  const steps = []
+  let sign = 1
+
+  steps.push({ text: 'Mulai perhitungan determinan (bentuk matriks)', matrix: M.map(r => r.slice()) })
+
+  for (let i = 0; i < n; i++) {
+    // find pivot
+    let maxRow = i
+    for (let r = i + 1; r < n; r++) {
+      if (Math.abs(M[r][i]) > Math.abs(M[maxRow][i])) maxRow = r
+    }
+    if (Math.abs(M[maxRow][i]) < 1e-12) {
+      steps.push({ text: `Pivot di kolom ${i} hampir nol -> determinan = 0` })
+      return { value: 0, steps }
+    }
+    if (maxRow !== i) {
+      const tmp = M[i]
+      M[i] = M[maxRow]
+      M[maxRow] = tmp
+      sign *= -1
+      steps.push({ text: `Tukar baris ${i} dengan baris ${maxRow}`, matrix: M.map(r => r.slice()) })
+    }
+
+    // eliminate below
+    for (let r = i + 1; r < n; r++) {
+      const factor = M[r][i] / M[i][i]
+      if (Math.abs(factor) > 0) {
+        for (let c = i; c < n; c++) M[r][c] -= factor * M[i][c]
+        steps.push({ text: `Eliminasi: kurangi baris ${r} dengan faktor ${factor} * baris ${i}`, matrix: M.map(rr => rr.slice()), factor, row: r, pivotRow: i })
+      }
+    }
+  }
+
+  const diagProd = M.reduce((acc, row, idx) => acc * row[idx], 1)
+  const value = sign * diagProd
+  steps.push({ text: `Matriks segitiga atas (perkalian diagonal untuk determinan)`, matrix: M.map(r => r.slice()) })
+  steps.push({ text: `Determinant = sign(${sign}) * product(diagonal) = ${value}`, value })
+  return { value, steps }
+}
+
 export function cramers(a, b) {
   return cramersWithSteps(a, b).solution
 }
@@ -70,16 +114,20 @@ export function cramers(a, b) {
 export function cramersWithSteps(a, b) {
   const n = a.length
   const steps = []
-  const D = det(a)
-  steps.push({ text: `Determinan D = ${D}`, value: D })
+  const Dres = detWithSteps(a)
+  const D = Dres.value
+  steps.push({ text: `Determinan D`, value: D, detSteps: Dres.steps })
   if (Math.abs(D) < 1e-12) throw new Error('Determinan nol (tidak ada solusi unik)')
   const solutions = []
   for (let i = 0; i < n; i++) {
     const Ai = a.map((row, r) => row.map((val, c) => (c === i ? b[r] : val)))
-    const Di = det(Ai)
-    steps.push({ text: `Determinan D_${i+1} = ${Di} (ganti kolom ${i} dengan vektor b)`, value: Di, matrix: Ai.map(r => r.slice()) })
+    const DresI = detWithSteps(Ai)
+    const Di = DresI.value
+    steps.push({ text: `Determinan D_${i+1} (ganti kolom ${i} dengan vektor b)`, value: Di, matrix: Ai.map(r => r.slice()), detSteps: DresI.steps })
     solutions.push(Di / D)
   }
-  steps.push({ text: 'Solusi akhir x_i = D_i / D', solution: solutions.slice() })
+  // Push a concise solution step; the UI will render the x_i and D_i subscripts
+  // and the detailed fraction D_i / D presentation from the `solution` array.
+  steps.push({ text: 'Solusi akhir', solution: solutions.slice() })
   return { solution: solutions, steps }
 }

@@ -43,12 +43,94 @@ export default function App() {
                 if (method === 'gauss') sol = gaussJordan(A, b)
                 else sol = cramers(A, b)
             }
-            setResult(sol.map((v, i) => `x${i + 1} = ${v.toFixed(6)}`))
+            // store numeric results; we'll format them on render to avoid excessive trailing zeros
+            setResult(sol)
             setSteps(outSteps)
         } catch (e) {
             setError(e.message)
             setResult(null)
         }
+    }
+
+    // format numbers: limit decimals, remove trailing zeros, treat very small values as 0
+    function formatNumber(v, maxDecimals = 6) {
+        if (!Number.isFinite(v)) return String(v)
+        if (Math.abs(v) < 1e-12) return '0'
+        const s = v.toFixed(maxDecimals)
+        // remove trailing zeros and optional trailing dot
+        return s.replace(/\.0+$|(?<=\.[0-9]*?)0+$/g, '').replace(/\.$/, '')
+    }
+
+    // try to approximate a float as a fraction with denominator up to maxDen
+    function approxFraction(x, maxDen = 20) {
+        if (!Number.isFinite(x)) return null
+        if (Math.abs(x - Math.round(x)) < 1e-12) return { n: Math.round(x), d: 1 }
+        const sign = x < 0 ? -1 : 1
+        x = Math.abs(x)
+        let best = { n: Math.round(x), d: 1, err: Math.abs(x - Math.round(x)) }
+        for (let d = 1; d <= maxDen; d++) {
+            const n = Math.round(x * d)
+            const err = Math.abs(x - n / d)
+            if (err < best.err) best = { n, d, err }
+            if (best.err === 0) break
+        }
+        if (best.err <= 1e-8) return { n: best.n * sign, d: best.d }
+        return null
+    }
+
+    // render numbers either as stacked fraction (if approximable) or formatted decimal
+    function renderValue(v, fracDen = 20, decimals = 6) {
+        if (!Number.isFinite(v)) return String(v)
+        if (Math.abs(v) < 1e-12) return '0'
+        const frac = approxFraction(v, fracDen)
+        if (frac && frac.d !== 1) {
+            return (
+                <span className="fraction" title={`${frac.n}/${frac.d}`}>
+                    <span className="num">{frac.n}</span>
+                    <span className="den">{frac.d}</span>
+                </span>
+            )
+        }
+        // integer or not approximable: show decimal (integers will not show .0)
+        return formatNumber(v, decimals)
+    }
+
+    // render a string that may contain variables like D1, x1 or numbers; D1/x1 become subscripted
+    function renderTextWithNumbers(text) {
+        if (!text || typeof text !== 'string') return text
+        const parts = []
+        const regex = /([Dx]_?\d+)|(-?\d*\.?\d+(?:e[+-]?\d+)?)/ig
+        let lastIndex = 0
+        let m
+        while ((m = regex.exec(text)) !== null) {
+            if (m.index > lastIndex) parts.push({ type: 'text', value: text.slice(lastIndex, m.index) })
+            if (m[1]) {
+                // D1 or D_1 or x1 or x_1
+                const mm = m[1].match(/^([Dx])_?(\d+)$/i)
+                if (mm) parts.push({ type: 'var', letter: mm[1], num: mm[2] })
+                else parts.push({ type: 'text', value: m[1] })
+            } else if (m[2]) {
+                parts.push({ type: 'number', value: Number(m[2]) })
+            }
+            lastIndex = regex.lastIndex
+        }
+        if (lastIndex < text.length) parts.push({ type: 'text', value: text.slice(lastIndex) })
+
+        return parts.map((p, i) => {
+            if (p.type === 'text') return <span key={i}>{p.value}</span>
+            if (p.type === 'var') return <span key={i}>{p.letter}<sub>{p.num}</sub></span>
+            if (p.type === 'number') {
+                // if previous token is 'baris ' or 'kolom ', render as 1-based integer for human-friendly labels
+                const prev = parts[i - 1]
+                if (prev && prev.type === 'text' && /\b(baris|kolom)\s*$/i.test(prev.value)) {
+                    const idx = Number(p.value)
+                    const human = Number.isNaN(idx) ? p.value : idx + 1
+                    return <span key={i}>{human}</span>
+                }
+                return <span key={i}>{renderValue(p.value, 50, 6)}</span>
+            }
+            return <span key={i}>{String(p.value)}</span>
+        })
     }
 
     return (
@@ -79,6 +161,39 @@ export default function App() {
                             <textarea value={vectorText} onChange={e => setVectorText(e.target.value)} rows={8} />
                         </div>
                     </div>
+                    <div style={{ marginTop: 8 }}>
+                        <div className="example-text">
+                            <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                                <small style={{ color: '#6b7280', fontWeight: 600 }}>Contoh:</small>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', paddingRight: 6 }}>
+                                    <div className="det-matrix-label">A =</div>
+                                </div>
+                                <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                                    <div className="matrix-with-brackets">
+                                        <table className="matrix-table example-matrix">
+                                            <tbody>
+                                                {[[2,1,-1],[-3,-1,2],[-2,1,2]].map((row, i) => (
+                                                    <tr key={i}>{row.map((v, c) => <td key={c} className="matrix-number">{renderValue(v, 50, 4)}</td>)}</tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', paddingLeft: 8 }}>
+                                        <div className="det-matrix-label">b =</div>
+                                    </div>
+                                    <div className="matrix-with-brackets">
+                                        <table className="matrix-table example-b-table">
+                                            <tbody>
+                                                {[8, -11, -3].map((v, i) => (
+                                                    <tr key={i}><td className="matrix-number">{renderValue(v, 50, 4)}</td></tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </>
             ) : (
                 <MatrixInput
@@ -107,8 +222,8 @@ export default function App() {
                 <div className="result">
                     <h3>Solusi</h3>
                     <ul>
-                        {result.map((r, i) => (
-                            <li key={i}>{r}</li>
+                        {result.map((v, i) => (
+                            <li key={i}><span className="var-label">x<sub>{i + 1}</sub></span>{' = '}{renderValue(v, 50, 6)}</li>
                         ))}
                     </ul>
                 </div>
@@ -120,21 +235,137 @@ export default function App() {
                     <ol>
                         {steps.map((s, i) => (
                             <li key={i}>
-                                <div style={{ fontWeight: 600 }}>{s.text}</div>
-                                {s.matrix && (
-                                    <pre style={{ overflowX: 'auto' }}>{s.matrix.map(row => row.map(v => Number.isFinite(v) ? v.toFixed(4) : v).join('\t')).join('\n')}</pre>
+                                <div style={{ fontWeight: 600 }}>{renderTextWithNumbers(s.text)}</div>
+                                {s.matrix && (() => {
+                                    // check if this step is a determinant label like D_1
+                                    const detMatch = (typeof s.text === 'string') && s.text.match(/D_?(\d+)/i)
+                                    const label = detMatch ? (`D${detMatch[1] ? '_' + detMatch[1] : ''}`) : null
+                                    const isAug = s.matrix && s.matrix[0] && s.matrix[0].length === s.matrix.length + 1
+                                    return (
+                                        <div style={{ overflowX: 'auto' }}>
+                                            {label ? (
+                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                    <div className="det-matrix-label">{renderTextWithNumbers(label + ' |')}</div>
+                                                    <div className="matrix-with-brackets">
+                                                        <table className="matrix-table">
+                                                            <tbody>
+                                                                {s.matrix.map((row, idx) => (
+                                                                    <tr key={idx}>{row.map((v, c) => (
+                                                                        <td key={c} className={"matrix-number" + (isAug && c === row.length - 1 ? ' augmented-col' : '')}>{renderValue(v, 50, 4)}</td>
+                                                                    ))}</tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="matrix-with-brackets">
+                                                    <table className="matrix-table">
+                                                        <tbody>
+                                                            {s.matrix.map((row, idx) => (
+                                                                <tr key={idx}>{row.map((v, c) => (
+                                                                    <td key={c} className={"matrix-number" + (isAug && c === row.length - 1 ? ' augmented-col' : '')}>{renderValue(v, 50, 4)}</td>
+                                                                ))}</tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })()}
+                                {s.value !== undefined && <div>Nilai: {renderValue(s.value, 50, 6)}</div>}
+                                {s.detSteps && (
+                                    <div className="det-steps">
+                                        <details>
+                                            <summary>Rincian perhitungan determinan</summary>
+                                            <ol>
+                                                {s.detSteps.map((ds, di) => (
+                                                    <li key={di}>
+                                                        <div style={{ fontWeight: 600 }}>
+                                                            {/* if ds has explicit factor, render it as fraction */}
+                                                            {ds.factor !== undefined ? (
+                                                                <span>Eliminasi: kurangi baris {ds.row + 1} dengan faktor {renderValue(ds.factor, 50, 8)} × baris {ds.pivotRow + 1}</span>
+                                                            ) : (
+                                                                renderTextWithNumbers(ds.text)
+                                                            )}
+                                                        </div>
+                                                        {ds.matrix && (
+                                                            <div style={{ overflowX: 'auto', marginTop: 6 }}>
+                                                                <div className="matrix-with-brackets">
+                                                                    <table className="matrix-table">
+                                                                        <tbody>
+                                                                            {ds.matrix.map((row, ridx) => (
+                                                                                <tr key={ridx}>{row.map((val, cid) => <td key={cid} className="matrix-number">{renderValue(val, 50, 6)}</td>)}</tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {ds.value !== undefined && <div>Nilai interim: {renderValue(ds.value, 50, 6)}</div>}
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                        </details>
+                                    </div>
                                 )}
-                                {s.value !== undefined && <div>Nilai: {s.value}</div>}
-                                {s.solution && <div>Solusi: {s.solution.map(v => v.toFixed(6)).join(', ')}</div>}
+                                {s.solution && (
+                                    <div className="solution-details">
+                                        <div style={{ fontWeight: 600 }}>Solusi akhir <span>x<sub>i</sub></span>{' = '}<span>D<sub>i</sub></span>{' / D'}</div>
+                                        <ol>
+                                            {s.solution.map((v, idx) => {
+                                                // find the corresponding D_i step (search earlier steps)
+                                                const diStep = steps && steps.find(st => typeof st.text === 'string' && st.text.match(new RegExp(`Determinan\\s+D_${idx+1}|D_${idx+1}|Determinan\\s+D${idx+1}`, 'i')))
+                                                const Dval = diStep && diStep.value !== undefined ? diStep.value : null
+                                                // find the main D step
+                                                const mainDStep = steps && steps.find(st => st.text && /Determinan\s+D$/i.test(st.text))
+                                                const Dmain = mainDStep && mainDStep.value !== undefined ? mainDStep.value : null
+                                                return (
+                                                    <li key={idx}>
+                                                        <div>
+                                                            <span className="var-label">x<sub>{idx + 1}</sub></span>
+                                                            = {Dval !== null ? <>{renderValue(Dval, 50, 8)} / {Dmain !== null ? renderValue(Dmain, 50, 8) : 'D'}</> : 'D_' + (idx+1) + ' / D'}
+                                                            {' = '}{renderValue(v, 50, 6)}
+                                                            {diStep && diStep.detSteps && (
+                                                                <details style={{ display: 'inline-block', marginLeft: 8 }}>
+                                                                    <summary style={{ display: 'inline' }}>lihat D<sub>{idx+1}</sub> langkah</summary>
+                                                                    <ol>
+                                                                        {diStep.detSteps.map((dsi, k) => (
+                                                                            <li key={k}>
+                                                                                <div style={{ fontWeight: 600 }}>{renderTextWithNumbers(dsi.text)}</div>
+                                                                                {dsi.matrix && (
+                                                                                    <div style={{ overflowX: 'auto', marginTop: 6 }}>
+                                                                                        <div className="matrix-with-brackets">
+                                                                                            <table className="matrix-table">
+                                                                                                <tbody>
+                                                                                                    {dsi.matrix.map((row, ridx) => (
+                                                                                                        <tr key={ridx}>{row.map((val, cid) => <td key={cid} className="matrix-number">{renderValue(val, 50, 6)}</td>)}</tr>
+                                                                                                    ))}
+                                                                                                </tbody>
+                                                                                            </table>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </li>
+                                                                        ))}
+                                                                    </ol>
+                                                                </details>
+                                                            )}
+                                                        </div>
+                                                    </li>
+                                                )
+                                            })}
+                                        </ol>
+                                    </div>
+                                )}
                             </li>
                         ))}
                     </ol>
                 </div>
             )}
 
-            <footer>
-                <small>Contoh: A= [[2,1,-1],[-3,-1,2],[-2,1,2]] b=[8,-11,-3]</small>
-            </footer>
+            <footer />
         </div>
     )
 }
